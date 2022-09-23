@@ -1,15 +1,40 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <WiFiClientSecure.h>
+#include <SPI.h>
+#include <MFRC522.h>
+#include <ArduinoJson.h>
 
-//---- WiFi settings
+#define SS_PIN 5   // ESP32 pin GIOP5
+#define RST_PIN 33 // ESP32 pin GIOP27
+
+const int buzzer = 21; // buzzer to pin 21
+
+uint8_t ledR = 25;
+uint8_t ledG = 26;
+uint8_t ledB = 27;
+
+uint8_t ledArray[3] = {1, 2, 3};
+
+const boolean invert = true;
+
+uint8_t color = 0;
+uint32_t R, G, B;
+uint8_t brightness = 255;
+
+MFRC522 rfid(SS_PIN, RST_PIN);
+
+MFRC522::MIFARE_Key key;
+MFRC522::StatusCode status;
+
 const char *ssid = "iPhone de Nathan";
 const char *password = "Nathan51100";
 
-//---- MQTT Broker settings
-const char *mqtt_server = "4401300a555f418182eb45a19e3d50b2.s1.eu.hivemq.cloud"; // replace with your broker url
-const char *mqtt_username = "nathan";
-const char *mqtt_password = "Cesi2022";
+// 0e1222c02scfl7
+const char *mqtt_server = "9ee6fa03f5754817a1ead63bf198898a.s1.eu.hivemq.cloud"; // replace with your broker url
+const char *mqtt_username = "nolah";
+const char *mqtt_password = "#jz6DMAFn*XAr,$rW;P9";
+const char *CLIENT_ID = "badger_2";
 const int mqtt_port = 8883;
 
 WiFiClientSecure espClient;
@@ -19,7 +44,8 @@ unsigned long lastMsg = 0;
 #define MSG_BUFFER_SIZE (50)
 char msg[MSG_BUFFER_SIZE];
 
-const char *sensor1_topic = "topic/test";
+const char *badger = "badger/cesi/reims/2";
+const char *api = "api/cesi/reims/2";
 
 static const char *root_ca PROGMEM = R"EOF(
 -----BEGIN CERTIFICATE-----
@@ -59,6 +85,8 @@ void setup()
 {
 
   Serial.begin(9600);
+  delay(10);
+
   Serial.print("\nConnecting to ");
   Serial.println(ssid);
 
@@ -73,6 +101,21 @@ void setup()
   randomSeed(micros());
   Serial.println("\nWiFi connected\nIP address: ");
   Serial.println(WiFi.localIP());
+
+  SPI.begin();
+  rfid.PCD_Init();
+
+  Serial.println("Tap an RFID/NFC tag on the RFID-RC522 reader");
+
+  pinMode(buzzer, OUTPUT);
+
+  ledcAttachPin(ledR, 1);
+  ledcAttachPin(ledG, 2);
+  ledcAttachPin(ledB, 3);
+
+  ledcSetup(1, 12000, 8);
+  ledcSetup(2, 12000, 8);
+  ledcSetup(3, 12000, 8);
 
   while (!Serial)
     delay(1);
@@ -89,25 +132,107 @@ void loop()
     reconnect();
   client.loop();
 
-  publishMessage(sensor1_topic, String(), true);
+  // Serial.println("Send Blue LED and wait x sec.");
+  // If your RGB LED turns off instead of on here you should check if the LED is common anode or cathode.
+  // If it doesn't fully turn off and is common anode try using 256.
+  ledcWrite(1, 0);
+  ledcWrite(2, 0);
+  ledcWrite(3, 255);
+  delay(1);
+
+  // Prepare key - all keys are set to FFFFFFFFFFFFh at chip delivery from the factory.
+  for (byte i = 0; i < 6; i++)
+    key.keyByte[i] = 0xFF;
+  byte block;
+  byte len;
+  //-------------------------------------------
+  // Reset the loop if no new card present on the sensor/reader. This saves the entire process when idle.
+  if (!rfid.PICC_IsNewCardPresent())
+  {
+    return;
+  }
+  // Select one of the cards
+  if (!rfid.PICC_ReadCardSerial())
+  {
+    return;
+  }
+  Serial.println(F("**Card Detected:**"));
+  byte buffer1[18];
+  block = 6;
+  len = sizeof(buffer1);
+  status = rfid.PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, block, &key, &(rfid.uid));
+  if (status != MFRC522::STATUS_OK)
+  {
+    Serial.print(F("Authentication failed: "));
+    Serial.println(rfid.GetStatusCodeName(status));
+
+    // If your RGB LED turns off instead of on here you should check if the LED is common anode or cathode.
+    // If it doesn't fully turn off and is common anode try using 256.
+    ledcWrite(1, 255);
+    ledcWrite(2, 0);
+    ledcWrite(3, 0);
+    delay(500);
+
+    tone(buzzer, 500); // Send sound signal (1KHz = 1000)
+    delay(240);
+    noTone(buzzer); // Son qui blink
+    delay(25);
+    tone(buzzer, 500); // Send sound signal (1KHz = 1000)
+    delay(240);
+    noTone(buzzer);
+    delay(1);
+
+    return;
+  }
+  status = rfid.MIFARE_Read(block, buffer1, &len);
+  if (status != MFRC522::STATUS_OK)
+  {
+    Serial.print(F("Reading failed: "));
+    Serial.println(rfid.GetStatusCodeName(status));
+    return;
+  }
+  String header = "";
+  for (uint8_t i = 0; i < 4; i++)
+  {
+    header += (char)buffer1[i];
+  }
+
+  String student_id = "";
+  for (uint8_t i = 4; i < 11; i++)
+  {
+    student_id += buffer1[i];
+  }
+
+  Serial.println(header);
+  Serial.println(student_id);
+
+  if (header == "CESI")
+  {
+    String message = "{\"school_student_id\":\"" + student_id + "\"}";
+    publishMessage(badger, message, true);
+  }
+  // else pour renvoie erreur
+
+  Serial.println(F("\n**End Reading**\n"));
+  delay(1);
+  rfid.PICC_HaltA();
+  rfid.PCD_StopCrypto1();
 }
 
 //=======================================================================Function=================================================================================
 
 void reconnect()
 {
-  // Loop until we’re reconnected
   while (!client.connected())
   {
     Serial.print("Attempting MQTT connection…");
     String clientId = "ESP8266Client-";
     clientId += String(random(0xffff), HEX);
-    // Attempt to connect
-    if (client.connect(clientId.c_str(), mqtt_username, mqtt_password))
+    if (client.connect(CLIENT_ID, mqtt_username, mqtt_password))
     {
       Serial.println("connected");
 
-      client.subscribe(sensor1_topic);
+      client.subscribe(api);
     }
     else
     {
@@ -124,9 +249,13 @@ void callback(char *topic, byte *payload, unsigned int length)
   String incommingMessage = "";
   for (int i = 0; i < length; i++)
     incommingMessage += (char)payload[i];
-  Serial.println("Message arrived [" + String(topic) + "]" + incommingMessage);
 
-  delay(1000);
+  DynamicJsonDocument doc(1024);
+  deserializeJson(doc, incommingMessage);
+  int code = doc["code"];
+  checkCode(code);
+
+  delay(300);
 }
 
 //======================================= publising as string
@@ -134,5 +263,64 @@ void publishMessage(const char *topic, String payload, boolean retained)
 {
   if (client.publish(topic, payload.c_str(), true))
     Serial.println("Message publised [" + String(topic) + "]: " + payload);
-  delay(1000);
+  delay(300);
+}
+
+void checkCode(int code)
+{
+  if (code == 0)
+  {
+    Serial.println("Correct input");
+    ledcWrite(1, 0);
+    ledcWrite(2, 255);
+    ledcWrite(3, 0);
+    tone(buzzer, 5000); // Send sound signal (1KHz = 1000)
+    delay(200);
+    noTone(buzzer);
+    delay(10);
+  }
+  else if (code == 1)
+  {
+    Serial.println("Already used");
+    ledcWrite(1, 255);
+    ledcWrite(2, 255);
+    ledcWrite(3, 0);
+    tone(buzzer, 500); // Send sound signal (1KHz = 1000)
+    delay(500);
+    noTone(buzzer);
+    delay(10);
+  }
+  else if (code == 2)
+  {
+    Serial.println("Not Found");
+    ledcWrite(1, 255);
+    ledcWrite(2, 0);
+    ledcWrite(3, 0);
+    tone(buzzer, 500); // Send sound signal (1KHz = 1000)
+    delay(500);
+    noTone(buzzer);
+    delay(10);
+  }
+  else if (code == 3)
+  {
+    Serial.println("Incorrect input");
+    ledcWrite(1, 255);
+    ledcWrite(2, 0);
+    ledcWrite(3, 0);
+    tone(buzzer, 500); // Send sound signal (1KHz = 1000)
+    delay(500);
+    noTone(buzzer);
+    delay(10);
+  }
+  else if (code == 4)
+  {
+    Serial.println("Unknown error");
+    ledcWrite(1, 255);
+    ledcWrite(2, 0);
+    ledcWrite(3, 0);
+    tone(buzzer, 500); // Send sound signal (1KHz = 1000)
+    delay(500);
+    noTone(buzzer);
+    delay(10);
+  }
 }
