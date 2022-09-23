@@ -229,11 +229,7 @@ void checkCode(int code)
     Serial.println("Correct input");
     setColor(0, 255, 0);
     tone(buzzer, 5000); // Send sound signal (1KHz = 1000)
-<<<<<<< HEAD
     delay(500);
-=======
-    delay((500));
->>>>>>> ab8678bce39c11d7311f978294dfc88c6454e6d3
     noTone(buzzer);
     setColor(0, 0, 255);
     delay(10);
