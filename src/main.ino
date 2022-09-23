@@ -4,6 +4,7 @@
 #include <SPI.h>
 #include <MFRC522.h>
 #include <ArduinoJson.h>
+#include <Credentials.h>
 
 #define SS_PIN 5   // ESP32 pin GIOP5
 #define RST_PIN 33 // ESP32 pin GIOP27
@@ -27,15 +28,17 @@ MFRC522 rfid(SS_PIN, RST_PIN);
 MFRC522::MIFARE_Key key;
 MFRC522::StatusCode status;
 
-const char *ssid = "iPhone de Nathan";
-const char *password = "Nathan51100";
+const char *ssid = ssid_name;
+const char *password = ssid_password;
 
 // 0e1222c02scfl7
-const char *mqtt_server = "9ee6fa03f5754817a1ead63bf198898a.s1.eu.hivemq.cloud"; // replace with your broker url
-const char *mqtt_username = "nolah";
-const char *mqtt_password = "#jz6DMAFn*XAr,$rW;P9";
-const char *CLIENT_ID = "badger_2";
-const int mqtt_port = 8883;
+const char *mqtt_server = mqtt_server_name;       // replace with your broker url
+const char *mqtt_username = mqtt_server_username; // replace with your username
+const char *mqtt_password = mqtt_server_password; // replace with your password
+const int mqtt_port = mqtt_server_port;           // replace with your port
+const char *CLIENT_ID = client_id;                // replace with your client id
+const char *badger = badger_topic;                // replace with your badger topic
+const char *api = api_topic;                      // replace with your api topic
 
 WiFiClientSecure espClient;
 PubSubClient client(espClient);
@@ -43,9 +46,6 @@ unsigned long lastMsg = 0;
 
 #define MSG_BUFFER_SIZE (50)
 char msg[MSG_BUFFER_SIZE];
-
-const char *badger = "badger/cesi/reims/2";
-const char *api = "api/cesi/reims/2";
 
 static const char *root_ca PROGMEM = R"EOF(
 -----BEGIN CERTIFICATE-----
