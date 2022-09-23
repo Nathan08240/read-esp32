@@ -39,7 +39,6 @@ const int mqtt_port = mqtt_server_port;
 const char *CLIENT_ID = client_id;
 const char *badger = badger_topic;
 const char *api = api_topic;
-const char *aws_protos[] = {"mqtt", NULL};
 
 WiFiClientSecure espClient;
 PubSubClient client(espClient);
