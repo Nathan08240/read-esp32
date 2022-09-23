@@ -98,10 +98,7 @@ void loop()
     reconnect();
   client.loop();
 
-  ledcWrite(1, 0);
-  ledcWrite(2, 0);
-  ledcWrite(3, 255);
-  delay(1);
+  setColor(0, 0, 255);
 
   for (byte i = 0; i < 6; i++)
     key.keyByte[i] = 0xFF;
@@ -125,9 +122,7 @@ void loop()
     Serial.print(F("Authentication failed: "));
     Serial.println(rfid.GetStatusCodeName(status));
 
-    ledcWrite(1, 255);
-    ledcWrite(2, 0);
-    ledcWrite(3, 0);
+    setColor(255, 0, 0);
     delay(500);
 
     tone(buzzer, 500); // Send sound signal (1KHz = 1000)
@@ -220,61 +215,63 @@ void publishMessage(const char *topic, String payload, boolean retained)
   delay(300);
 }
 
+void setColor(uint8_t red, uint8_t green, uint8_t blue)
+{
+  ledcWrite(1, red);
+  ledcWrite(2, green);
+  ledcWrite(3, blue);
+}
+
 void checkCode(int code)
 {
   if (code == 0)
   {
     Serial.println("Correct input");
-    ledcWrite(1, 0);
-    ledcWrite(2, 255);
-    ledcWrite(3, 0);
+    setColor(0, 255, 0);
     tone(buzzer, 5000); // Send sound signal (1KHz = 1000)
     delay(200);
     noTone(buzzer);
+    setColor(0, 0, 255);
     delay(10);
   }
   else if (code == 1)
   {
     Serial.println("Already used");
-    ledcWrite(1, 255);
-    ledcWrite(2, 255);
-    ledcWrite(3, 0);
+    setColor(255, 255, 0);
     tone(buzzer, 500); // Send sound signal (1KHz = 1000)
     delay(500);
     noTone(buzzer);
+    setColor(0, 0, 255);
     delay(10);
   }
   else if (code == 2)
   {
     Serial.println("Not Found");
-    ledcWrite(1, 255);
-    ledcWrite(2, 0);
-    ledcWrite(3, 0);
+    setColor(255, 0, 0);
     tone(buzzer, 500); // Send sound signal (1KHz = 1000)
     delay(500);
     noTone(buzzer);
+    setColor(0, 0, 255);
     delay(10);
   }
   else if (code == 3)
   {
     Serial.println("Incorrect input");
-    ledcWrite(1, 255);
-    ledcWrite(2, 0);
-    ledcWrite(3, 0);
+    setColor(255, 0, 0);
     tone(buzzer, 500); // Send sound signal (1KHz = 1000)
     delay(500);
     noTone(buzzer);
+    setColor(0, 0, 255);
     delay(10);
   }
   else if (code == 4)
   {
     Serial.println("Unknown error");
-    ledcWrite(1, 255);
-    ledcWrite(2, 0);
-    ledcWrite(3, 0);
+    setColor(255, 0, 0);
     tone(buzzer, 500); // Send sound signal (1KHz = 1000)
     delay(500);
     noTone(buzzer);
+    setColor(0, 0, 255);
     delay(10);
   }
 }
