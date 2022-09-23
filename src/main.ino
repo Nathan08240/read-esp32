@@ -53,6 +53,14 @@ void setup()
   Serial.begin(9600);
   delay(10);
 
+  ledcAttachPin(ledR, 1);
+  ledcAttachPin(ledG, 2);
+  ledcAttachPin(ledB, 3);
+
+  ledcSetup(1, 12000, 8);
+  ledcSetup(2, 12000, 8);
+  ledcSetup(3, 12000, 8);
+
   Serial.print("\nConnecting to ");
   Serial.println(ssid);
 
@@ -63,6 +71,9 @@ void setup()
   {
     delay(500);
     Serial.print(".");
+    setColor(255, 0, 0);
+    delay(150);
+    setColor(0, 0, 0);
   }
   randomSeed(micros());
   Serial.println("\nWiFi connected\nIP address: ");
@@ -75,20 +86,12 @@ void setup()
 
   pinMode(buzzer, OUTPUT);
 
-  ledcAttachPin(ledR, 1);
-  ledcAttachPin(ledG, 2);
-  ledcAttachPin(ledB, 3);
-
-  ledcSetup(1, 12000, 8);
-  ledcSetup(2, 12000, 8);
-  ledcSetup(3, 12000, 8);
-
-  while (!Serial)
-    delay(1);
-
   espClient.setInsecure(); // set security or not to wifi connect
   client.setServer(mqtt_server, mqtt_port);
   client.setCallback(callback);
+
+  while (!Serial)
+    delay(1);
 }
 
 void loop()
@@ -106,10 +109,12 @@ void loop()
   byte len;
   if (!rfid.PICC_IsNewCardPresent())
   {
+    setColor(255, 0, 0);
     return;
   }
   if (!rfid.PICC_ReadCardSerial())
   {
+    setColor(255, 0, 0);
     return;
   }
   Serial.println(F("**Card Detected:**"));
@@ -155,9 +160,6 @@ void loop()
     student_id += buffer1[i];
   }
 
-  Serial.println(header);
-  Serial.println(student_id);
-
   if (header == "CESI")
   {
     String message = "{\"school_student_id\":\"" + student_id + "\"}";
@@ -176,8 +178,6 @@ void reconnect()
   while (!client.connected())
   {
     Serial.print("Attempting MQTT connection…");
-    String clientId = "ESP8266Client-";
-    clientId += String(random(0xffff), HEX);
     if (client.connect(CLIENT_ID, mqtt_username, mqtt_password))
     {
       Serial.println("connected");
@@ -186,10 +186,11 @@ void reconnect()
     }
     else
     {
-      Serial.print("failed, rc=");
-      Serial.print(client.state());
-      Serial.println(" try again in 5 seconds");
-      delay(5000);
+      Serial.print("failed,");
+      Serial.println(" try again..");
+      setColor(0, 0, 255);
+      delay(150);
+      setColor(0, 0, 0);
     }
   }
 }
@@ -226,7 +227,7 @@ void checkCode(int code)
 {
   if (code == 0)
   {
-    Serial.println("Correct input");
+    Serial.println("Code 0 : Correct input");
     setColor(0, 255, 0);
     tone(buzzer, 5000); // Send sound signal (1KHz = 1000)
     delay((500));
@@ -236,7 +237,7 @@ void checkCode(int code)
   }
   else if (code == 1)
   {
-    Serial.println("Already used");
+    Serial.println("Code 1 : Already used");
     setColor(255, 0, 0);
     tone(buzzer, 500); // Send sound signal (1KHz = 1000)
     delay(500);
@@ -246,7 +247,7 @@ void checkCode(int code)
   }
   else if (code == 2)
   {
-    Serial.println("Not Found");
+    Serial.println("Code 2 : Not Found");
     setColor(255, 0, 0);
     tone(buzzer, 500); // Send sound signal (1KHz = 1000)
     delay(500);
@@ -256,7 +257,7 @@ void checkCode(int code)
   }
   else if (code == 3)
   {
-    Serial.println("Incorrect input");
+    Serial.println("Code 3 : Incorrect input");
     setColor(255, 0, 0);
     tone(buzzer, 500); // Send sound signal (1KHz = 1000)
     delay(500);
@@ -266,7 +267,7 @@ void checkCode(int code)
   }
   else if (code == 4)
   {
-    Serial.println("Unknown error");
+    Serial.println("Code 4 : Unknown error");
     setColor(255, 0, 0);
     tone(buzzer, 500); // Send sound signal (1KHz = 1000)
     delay(500);
