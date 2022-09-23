@@ -229,7 +229,7 @@ void checkCode(int code)
     Serial.println("Correct input");
     setColor(0, 255, 0);
     tone(buzzer, 5000); // Send sound signal (1KHz = 1000)
-    delay(200);
+    delay((500));
     noTone(buzzer);
     setColor(0, 0, 255);
     delay(10);
@@ -237,7 +237,7 @@ void checkCode(int code)
   else if (code == 1)
   {
     Serial.println("Already used");
-    setColor(255, 255, 0);
+    setColor(255, 0, 0);
     tone(buzzer, 500); // Send sound signal (1KHz = 1000)
     delay(500);
     noTone(buzzer);
