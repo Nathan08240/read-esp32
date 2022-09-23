@@ -32,13 +32,13 @@ const char *ssid = ssid_name;
 const char *password = ssid_password;
 
 // 0e1222c02scfl7
-const char *mqtt_server = mqtt_server_name;       // replace with your broker url
-const char *mqtt_username = mqtt_server_username; // replace with your username
-const char *mqtt_password = mqtt_server_password; // replace with your password
-const int mqtt_port = mqtt_server_port;           // replace with your port
-const char *CLIENT_ID = client_id;                // replace with your client id
-const char *badger = badger_topic;                // replace with your badger topic
-const char *api = api_topic;                      // replace with your api topic
+const char *mqtt_server = mqtt_server_name;
+const char *mqtt_username = mqtt_server_username;
+const char *mqtt_password = mqtt_server_password;
+const int mqtt_port = mqtt_server_port;
+const char *CLIENT_ID = client_id;
+const char *badger = badger_topic;
+const char *api = api_topic;
 
 WiFiClientSecure espClient;
 PubSubClient client(espClient);
