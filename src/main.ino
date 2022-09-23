@@ -132,26 +132,19 @@ void loop()
     reconnect();
   client.loop();
 
-  // Serial.println("Send Blue LED and wait x sec.");
-  // If your RGB LED turns off instead of on here you should check if the LED is common anode or cathode.
-  // If it doesn't fully turn off and is common anode try using 256.
   ledcWrite(1, 0);
   ledcWrite(2, 0);
   ledcWrite(3, 255);
   delay(1);
 
-  // Prepare key - all keys are set to FFFFFFFFFFFFh at chip delivery from the factory.
   for (byte i = 0; i < 6; i++)
     key.keyByte[i] = 0xFF;
   byte block;
   byte len;
-  //-------------------------------------------
-  // Reset the loop if no new card present on the sensor/reader. This saves the entire process when idle.
   if (!rfid.PICC_IsNewCardPresent())
   {
     return;
   }
-  // Select one of the cards
   if (!rfid.PICC_ReadCardSerial())
   {
     return;
@@ -166,8 +159,6 @@ void loop()
     Serial.print(F("Authentication failed: "));
     Serial.println(rfid.GetStatusCodeName(status));
 
-    // If your RGB LED turns off instead of on here you should check if the LED is common anode or cathode.
-    // If it doesn't fully turn off and is common anode try using 256.
     ledcWrite(1, 255);
     ledcWrite(2, 0);
     ledcWrite(3, 0);
@@ -219,8 +210,6 @@ void loop()
   rfid.PCD_StopCrypto1();
 }
 
-//=======================================================================Function=================================================================================
-
 void reconnect()
 {
   while (!client.connected())
@@ -258,7 +247,6 @@ void callback(char *topic, byte *payload, unsigned int length)
   delay(300);
 }
 
-//======================================= publising as string
 void publishMessage(const char *topic, String payload, boolean retained)
 {
   if (client.publish(topic, payload.c_str(), true))
