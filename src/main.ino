@@ -53,6 +53,7 @@ void setup()
   Serial.begin(9600);
   delay(10);
 
+  ledcAttachPin(ledR, 1);
   ledcAttachPin(ledG, 2);
   ledcAttachPin(ledB, 3);
 
