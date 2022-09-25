@@ -6,9 +6,9 @@
 #include <ArduinoJson.h>
 #include <Credentials.h>
 
-#define SS_PIN 5   // ESP32 pin GIOP5
+#define SS_PIN 32   // ESP32 pin GIOP5
 #define RST_PIN 33 // ESP32 pin GIOP33
-
+#define BUTTON_PIN_BITMASK 0x300000000
 
 const int buzzer = 21; // buzzer to pin 21
 
@@ -41,6 +41,11 @@ const char *CLIENT_ID = client_id;
 const char *badger = badger_topic;
 const char *api = api_topic;
 
+RTC_DATA_ATTR int deep_sleep_counter = 0;
+
+byte block = 6;
+byte len;
+
 WiFiClientSecure espClient;
 PubSubClient client(espClient);
 unsigned long lastMsg = 0;
@@ -53,6 +58,7 @@ void setup()
   Serial.begin(9600);
   delay(10);
 
+  // esp_sleep_enable_ext0_wakeup(GPIO_NUM_5, 1); //1 = High, 0 = Low
   ledcAttachPin(ledR, 1);
   ledcAttachPin(ledG, 2);
   ledcAttachPin(ledB, 3);
@@ -90,38 +96,59 @@ void setup()
   client.setServer(mqtt_server, mqtt_port);
   client.setCallback(callback);
 
-  while (!Serial)
+  while (!Serial) {
     delay(1);
+  } 
 
+  
 }
 
+32/33/19/23/18/19
+
 void loop()
-{
-  if (!client.connected())
+{ 
+  setColor(0, 0, 255);
+  // Serial.println(deep_sleep_counter);
+
+  // if (deep_sleep_counter == 10) {
+  //   Serial.println("Going to sleep");
+  //   esp_light_sleep_start();
+  //   return;
+  // }
+
+  if (!client.connected()) {
     reconnect();
+  }
   client.loop();
 
-  setColor(0, 0, 255);
-
-  for (byte i = 0; i < 6; i++)
-    key.keyByte[i] = 0xFF;
-  byte block;
-  byte len;
   if (!rfid.PICC_IsNewCardPresent())
   {
+    deep_sleep_counter++;
+    delay(100);
+    return;
+    esp_sleep
+  }
+
+  if (!rfid.PICC_ReadCardSerial()){
+
     setColor(255, 0, 0);
+    delay(1000);
     return;
   }
-  if (!rfid.PICC_ReadCardSerial())
-  {
-    setColor(255, 0, 0);
-    return;
+
+
+
+  for (byte i = 0; i < 6; i++) {
+    key.keyByte[i] = 0xFF;
   }
+
   Serial.println(F("**Card Detected:**"));
+  
+  deep_sleep_counter = 0;
   byte buffer1[18];
-  block = 6;
   len = sizeof(buffer1);
   status = rfid.PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, block, &key, &(rfid.uid));
+
   if (status != MFRC522::STATUS_OK)
   {
     Serial.print(F("Authentication failed: "));
@@ -234,8 +261,9 @@ void checkCode(int code)
     noTone(buzzer);
     setColor(0, 0, 255);
     delay(10);
+    return;
   }
-  else if (code == 1)
+  if (code == 1)
   {
     Serial.println("Code 1 : Already used");
     setColor(255, 0, 0);
@@ -244,8 +272,9 @@ void checkCode(int code)
     noTone(buzzer);
     setColor(0, 0, 255);
     delay(10);
+    return;
   }
-  else if (code == 2)
+  if (code == 2)
   {
     Serial.println("Code 2 : Not Found");
     setColor(255, 0, 0);
@@ -254,8 +283,9 @@ void checkCode(int code)
     noTone(buzzer);
     setColor(0, 0, 255);
     delay(10);
+    return;
   }
-  else if (code == 3)
+  if (code == 3)
   {
     Serial.println("Code 3 : Incorrect input");
     setColor(255, 0, 0);
@@ -264,8 +294,9 @@ void checkCode(int code)
     noTone(buzzer);
     setColor(0, 0, 255);
     delay(10);
+    return;
   }
-  else if (code == 4)
+  if (code == 4)
   {
     Serial.println("Code 4 : Unknown error");
     setColor(255, 0, 0);
@@ -274,5 +305,6 @@ void checkCode(int code)
     noTone(buzzer);
     setColor(0, 0, 255);
     delay(10);
+    return;
   }
 }
