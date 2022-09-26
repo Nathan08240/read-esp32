@@ -6,10 +6,12 @@
 #include <ArduinoJson.h>
 #include <Credentials.h>
 
-#define SS_PIN 32   // ESP32 pin GIOP5
+#define SS_PIN 32  // ESP32 pin GIOP5
 #define RST_PIN 33 // ESP32 pin GIOP33
-#define BUTTON_PIN_BITMASK 0x300000000
+#define OBS 4
 
+int avoid;
+int TIMER = 2;         // SECONDS
 const int buzzer = 21; // buzzer to pin 21
 
 uint8_t ledR = 25;
@@ -58,7 +60,7 @@ void setup()
   Serial.begin(9600);
   delay(10);
 
-  // esp_sleep_enable_ext0_wakeup(GPIO_NUM_5, 1); //1 = High, 0 = Low
+  esp_sleep_enable_ext0_wakeup(GPIO_NUM_4, 0); // 1 = High, 0 = Low
   ledcAttachPin(ledR, 1);
   ledcAttachPin(ledG, 2);
   ledcAttachPin(ledB, 3);
@@ -66,6 +68,8 @@ void setup()
   ledcSetup(1, 12000, 8);
   ledcSetup(2, 12000, 8);
   ledcSetup(3, 12000, 8);
+
+  pinMode(OBS, INPUT);
 
   Serial.print("\nConnecting to ");
   Serial.println(ssid);
@@ -96,54 +100,58 @@ void setup()
   client.setServer(mqtt_server, mqtt_port);
   client.setCallback(callback);
 
-  while (!Serial) {
+  while (!Serial)
+  {
     delay(1);
-  } 
-
-  
+  }
+  if (avoid == 0)
+  {
+    deep_sleep_counter = 0;
+  }
 }
 
-32/33/19/23/18/19
-
 void loop()
-{ 
-  setColor(0, 0, 255);
-  // Serial.println(deep_sleep_counter);
+{
+  avoid = digitalRead(OBS); // lecture de la valeur du signal
 
-  // if (deep_sleep_counter == 10) {
-  //   Serial.println("Going to sleep");
-  //   esp_light_sleep_start();
-  //   return;
-  // }
+  if (deep_sleep_counter > TIMER * 10)
+  {
+    Serial.println("Going to sleep");
+    esp_deep_sleep_start();
+    return;
+  }
 
-  if (!client.connected()) {
+  if (!client.connected())
+  {
     reconnect();
   }
   client.loop();
+  Serial.print("Timer : ");
+  Serial.print(deep_sleep_counter);
+  Serial.println(" ms");
+  setColor(0, 0, 255);
 
   if (!rfid.PICC_IsNewCardPresent())
   {
     deep_sleep_counter++;
     delay(100);
     return;
-    esp_sleep
   }
 
-  if (!rfid.PICC_ReadCardSerial()){
+  if (!rfid.PICC_ReadCardSerial())
+  {
 
     setColor(255, 0, 0);
     delay(1000);
     return;
   }
 
-
-
-  for (byte i = 0; i < 6; i++) {
+  for (byte i = 0; i < 6; i++)
+  {
     key.keyByte[i] = 0xFF;
   }
 
   Serial.println(F("**Card Detected:**"));
-  
   deep_sleep_counter = 0;
   byte buffer1[18];
   len = sizeof(buffer1);
@@ -192,7 +200,15 @@ void loop()
     String message = "{\"school_student_id\":\"" + student_id + "\"}";
     publishMessage(badger, message, true);
   }
-  // else pour renvoie erreur
+  else
+  {
+    setColor(255, 0, 0);
+    tone(buzzer, 500); // Send sound signal (1KHz = 1000)
+    delay(500);
+    noTone(buzzer);
+    setColor(0, 0, 255);
+    delay(10);
+  }
 
   Serial.println(F("\n**End Reading**\n"));
   delay(1);
@@ -204,7 +220,11 @@ void reconnect()
 {
   while (!client.connected())
   {
+
     Serial.print("Attempting MQTT connection…");
+    setColor(0, 0, 255);
+    delay(150);
+    setColor(0, 0, 0);
     if (client.connect(CLIENT_ID, mqtt_username, mqtt_password))
     {
       Serial.println("connected");
@@ -215,9 +235,6 @@ void reconnect()
     {
       Serial.print("failed,");
       Serial.println(" try again..");
-      setColor(0, 0, 255);
-      delay(150);
-      setColor(0, 0, 0);
     }
   }
 }
