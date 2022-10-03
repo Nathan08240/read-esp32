@@ -28,3 +28,29 @@ Une fois celà fait, on peut build pour la première fois le programme.
 
 
 On appuie sur ce dernier bouton et maintenant on laisse la magie opérer ! 
+
+Maintenant que c'est build, bien configurer i faut l'upload sur l'esp32, pour cela, rien de plus simple, on appuie sur le bouton à côté de build
+
+![image](https://user-images.githubusercontent.com/50341252/193600150-09037f2f-e44e-48c3-96b5-2a0bd443d697.png)
+
+L'upload peut démarrer.
+A un moment donné, sur le termianl va s'afficher
+```connecting...```
+Il suffit de rester appuyer sur le bouton boot de l'esp32 et cela devrait se débloquer.
+
+Maintenant tout est opérationel !
+
+# CODE COULEUR ! 
+
+## Au demarrage 
+
+La led va clignoter rouge -> Recherche de Wifi
+Une fois connecter au wifi, si elle clignote bleu -> COnnection au MQQT
+Si bleu fixe -> opérationnel, tout fonctionne correctemement
+
+##  Durant le fonctionnement !
+La led doit de base être en bleu fixe
+
+### lorsque l'on passe un badge 
+Si led rouge -> Erreur !
+Si led verte -> Badge correct ! 
