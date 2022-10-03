@@ -11,7 +11,7 @@
 #define OBS 4
 
 int avoid;
-int TIMER = 2;         // SECONDS
+int TIMER = 600;       // SECONDS
 const int buzzer = 21; // buzzer to pin 21
 
 uint8_t ledR = 25;
@@ -126,9 +126,6 @@ void loop()
     reconnect();
   }
   client.loop();
-  Serial.print("Timer : ");
-  Serial.print(deep_sleep_counter);
-  Serial.println(" ms");
   setColor(0, 0, 255);
 
   if (!rfid.PICC_IsNewCardPresent())
