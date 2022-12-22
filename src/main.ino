@@ -6,8 +6,9 @@
 #include <ArduinoJson.h>
 #include <Credentials.h>
 
-#define SS_PIN 32  // ESP32 pin GIOP5
-#define RST_PIN 33 // ESP32 pin GIOP33
+#define batteryPin 36 // ESP32 pin GIOP36
+#define SS_PIN 32     // ESP32 pin GIOP32
+#define RST_PIN 33    // ESP32 pin GIOP33
 #define OBS 4
 
 int avoid;
@@ -54,6 +55,15 @@ unsigned long lastMsg = 0;
 
 #define MSG_BUFFER_SIZE (50)
 char msg[MSG_BUFFER_SIZE];
+
+#define C6 1047
+#define D6 1175
+#define E6 1319
+#define F6 1397
+#define G6 1568
+#define A6 1760
+#define B6 1976
+#define C7 2093
 
 void setup()
 {
@@ -113,6 +123,9 @@ void setup()
 void loop()
 {
   avoid = digitalRead(OBS); // lecture de la valeur du signal
+
+  int batteryVoltage = analogRead(batteryPin);          // read the battery voltage
+  float batteryLevel = batteryVoltage / 1024.0 * 100.0; // convert to percentage
 
   if (deep_sleep_counter > TIMER * 10)
   {
@@ -195,7 +208,7 @@ void loop()
   if (header == "CESI")
   {
     String message = "{\"school_student_id\":\"" + student_id + "\"}";
-    publishMessage(badger, message, true);
+    publishMessage(badger, message, true, batteryLevel);
   }
   else
   {
@@ -219,6 +232,7 @@ void reconnect()
   {
 
     Serial.print("Attempting MQTT connection…");
+    Serial.println(mqtt_server);
     setColor(0, 0, 255);
     delay(150);
     setColor(0, 0, 0);
@@ -246,14 +260,20 @@ void callback(char *topic, byte *payload, unsigned int length)
   deserializeJson(doc, incommingMessage);
   int code = doc["code"];
   checkCode(code);
+  int has_to_ring = doc["has_to_ring"];
+  happyBirthdaySong();
 
+  if (has_to_ring)
+  {
+  }
+  Serial.println("Message received [" + String(topic) + "]: " + incommingMessage);
   delay(300);
 }
 
-void publishMessage(const char *topic, String payload, boolean retained)
+void publishMessage(const char *topic, String payload, boolean retained, int batterie)
 {
   if (client.publish(topic, payload.c_str(), true))
-    Serial.println("Message publised [" + String(topic) + "]: " + payload);
+    Serial.println("Message publised [" + String(topic) + "]: " + payload + " " + batterie);
   delay(300);
 }
 
@@ -271,7 +291,7 @@ void checkCode(int code)
     Serial.println("Code 0 : Correct input");
     setColor(0, 255, 0);
     tone(buzzer, 5000); // Send sound signal (1KHz = 1000)
-    delay((500));
+    delay((250));
     noTone(buzzer);
     setColor(0, 0, 255);
     delay(10);
@@ -282,7 +302,7 @@ void checkCode(int code)
     Serial.println("Code 1 : Already used");
     setColor(255, 0, 0);
     tone(buzzer, 500); // Send sound signal (1KHz = 1000)
-    delay(500);
+    delay(250);
     noTone(buzzer);
     setColor(0, 0, 255);
     delay(10);
@@ -293,7 +313,7 @@ void checkCode(int code)
     Serial.println("Code 2 : Not Found");
     setColor(255, 0, 0);
     tone(buzzer, 500); // Send sound signal (1KHz = 1000)
-    delay(500);
+    delay(250);
     noTone(buzzer);
     setColor(0, 0, 255);
     delay(10);
@@ -304,7 +324,7 @@ void checkCode(int code)
     Serial.println("Code 3 : Incorrect input");
     setColor(255, 0, 0);
     tone(buzzer, 500); // Send sound signal (1KHz = 1000)
-    delay(500);
+    delay(250);
     noTone(buzzer);
     setColor(0, 0, 255);
     delay(10);
@@ -315,10 +335,48 @@ void checkCode(int code)
     Serial.println("Code 4 : Unknown error");
     setColor(255, 0, 0);
     tone(buzzer, 500); // Send sound signal (1KHz = 1000)
-    delay(500);
+    delay(250);
     noTone(buzzer);
     setColor(0, 0, 255);
     delay(10);
     return;
   }
+}
+
+void playNote(int frequency, int duration)
+{
+  // play a single note with the specified frequency and duration
+  tone(buzzer, frequency, duration);
+  delay(duration);
+  noTone(buzzer);
+  delay(100);
+}
+
+void happyBirthdaySong()
+{
+  playNote(C6, 250);
+  playNote(C6, 250);
+  playNote(D6, 250);
+  playNote(C6, 250);
+  playNote(F6, 250);
+  playNote(E6, 500);
+  playNote(C6, 250);
+  playNote(C6, 250);
+  playNote(D6, 250);
+  playNote(C6, 250);
+  playNote(G6, 250);
+  playNote(F6, 500);
+  playNote(C6, 250);
+  playNote(C6, 250);
+  playNote(C7, 250);
+  playNote(A6, 250);
+  playNote(F6, 250);
+  playNote(E6, 250);
+  playNote(D6, 500);
+  playNote(B6, 250);
+  playNote(B6, 250);
+  playNote(A6, 250);
+  playNote(F6, 250);
+  playNote(G6, 250);
+  playNote(F6, 500);
 }
