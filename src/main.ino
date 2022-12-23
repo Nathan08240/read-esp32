@@ -43,6 +43,7 @@ const int mqtt_port = mqtt_server_port;
 const char *CLIENT_ID = client_id;
 const char *badger = badger_topic;
 const char *api = api_topic;
+const char *birthday = has_to_ring_topic;
 
 RTC_DATA_ATTR int deep_sleep_counter = 0;
 
@@ -68,7 +69,6 @@ char msg[MSG_BUFFER_SIZE];
 void setup()
 {
   Serial.begin(9600);
-  delay(10);
 
   esp_sleep_enable_ext0_wakeup(GPIO_NUM_4, 0); // 1 = High, 0 = Low
   ledcAttachPin(ledR, 1);
@@ -208,7 +208,7 @@ void loop()
   if (header == "CESI")
   {
     String message = "{\"school_student_id\":\"" + student_id + "\"}";
-    publishMessage(badger, message, true, batteryLevel);
+    publishMessage(badger, message, true);
   }
   else
   {
@@ -220,8 +220,6 @@ void loop()
     delay(10);
   }
 
-  Serial.println(F("\n**End Reading**\n"));
-  delay(1);
   rfid.PICC_HaltA();
   rfid.PCD_StopCrypto1();
 }
@@ -238,9 +236,9 @@ void reconnect()
     setColor(0, 0, 0);
     if (client.connect(CLIENT_ID, mqtt_username, mqtt_password))
     {
-      Serial.println("connected");
-
       client.subscribe(api);
+      client.subscribe(birthday);
+      Serial.println("connected");
     }
     else
     {
@@ -252,6 +250,18 @@ void reconnect()
 
 void callback(char *topic, byte *payload, unsigned int length)
 {
+  if (strcmp(topic, api) == 0)
+  {
+    callBackApiBadger(topic, payload, length);
+  }
+  else if (strcmp(topic, birthday) == 0)
+  {
+    callBackBirthday(topic, payload, length);
+  }
+}
+
+void callBackApiBadger(char *topic, byte *payload, unsigned int length)
+{
   String incommingMessage = "";
   for (int i = 0; i < length; i++)
     incommingMessage += (char)payload[i];
@@ -260,20 +270,44 @@ void callback(char *topic, byte *payload, unsigned int length)
   deserializeJson(doc, incommingMessage);
   int code = doc["code"];
   checkCode(code);
-  int has_to_ring = doc["has_to_ring"];
-  happyBirthdaySong();
+  boolean has_to_ring = doc["has_to_ring"];
 
   if (has_to_ring)
   {
+    String msg = "birthday";
+    String message = "{\"has_to_ring\":\"" + msg + "\"}";
+    publishBirthday(birthday, message, true);
   }
+
   Serial.println("Message received [" + String(topic) + "]: " + incommingMessage);
   delay(300);
 }
 
-void publishMessage(const char *topic, String payload, boolean retained, int batterie)
+void callBackBirthday(char *topic, byte *payload, unsigned int length)
+{
+  String incommingMessage = "";
+  for (int i = 0; i < length; i++)
+    incommingMessage += (char)payload[i];
+
+  Serial.println(incommingMessage);
+  DynamicJsonDocument doc(1024);
+  deserializeJson(doc, incommingMessage);
+  String has_to_ring = doc["has_to_ring"];
+  Serial.println("Message received [" + String(topic) + "]: " + has_to_ring);
+  birthdaySong();
+}
+
+void publishMessage(const char *topic, String payload, boolean retained)
 {
   if (client.publish(topic, payload.c_str(), true))
-    Serial.println("Message publised [" + String(topic) + "]: " + payload + " " + batterie);
+    Serial.println("Message published [" + String(topic) + "]: " + payload);
+  delay(300);
+}
+
+void publishBirthday(const char *topic, String payload, boolean retained)
+{
+  if (client.publish(topic, payload.c_str(), true))
+    Serial.println("Message published [" + String(topic) + "]: " + payload);
   delay(300);
 }
 
@@ -343,40 +377,68 @@ void checkCode(int code)
   }
 }
 
-void playNote(int frequency, int duration)
+void birthdaySong()
 {
-  // play a single note with the specified frequency and duration
-  tone(buzzer, frequency, duration);
-  delay(duration);
-  noTone(buzzer);
-  delay(100);
-}
-
-void happyBirthdaySong()
-{
-  playNote(C6, 250);
-  playNote(C6, 250);
-  playNote(D6, 250);
-  playNote(C6, 250);
-  playNote(F6, 250);
-  playNote(E6, 500);
-  playNote(C6, 250);
-  playNote(C6, 250);
-  playNote(D6, 250);
-  playNote(C6, 250);
-  playNote(G6, 250);
-  playNote(F6, 500);
-  playNote(C6, 250);
-  playNote(C6, 250);
-  playNote(C7, 250);
-  playNote(A6, 250);
-  playNote(F6, 250);
-  playNote(E6, 250);
-  playNote(D6, 500);
-  playNote(B6, 250);
-  playNote(B6, 250);
-  playNote(A6, 250);
-  playNote(F6, 250);
-  playNote(G6, 250);
-  playNote(F6, 500);
+  Serial.println("Joyeux anniversaire ! ");
+  // delay(100);
+  // tone(buzzer, 523); // Original frequency: 131
+  // delay(250);
+  // noTone(buzzer);
+  // delay(125);
+  // tone(buzzer, 523); // Original frequency: 131
+  // delay(250);
+  // tone(buzzer, 587); // Original frequency: 147
+  // delay(500);
+  // tone(buzzer, 523); // Original frequency: 131
+  // delay(500);
+  // tone(buzzer, 698); // Original frequency: 175
+  // delay(500);
+  // tone(buzzer, 659); // Original frequency: 165
+  // delay(1000);
+  // tone(buzzer, 523); // Original frequency: 131
+  // delay(250);
+  // noTone(buzzer);
+  // delay(125);
+  // tone(buzzer, 523); // Original frequency: 131
+  // delay(250);
+  // tone(buzzer, 587); // Original frequency: 147
+  // delay(500);
+  // tone(buzzer, 523); // Original frequency: 131
+  // delay(500);
+  // tone(buzzer, 784); // Original frequency: 196
+  // delay(500);
+  // tone(buzzer, 698); // Original frequency: 175
+  // delay(1000);
+  // tone(buzzer, 523); // Original frequency: 131
+  // delay(250);
+  // noTone(buzzer);
+  // delay(125);
+  // tone(buzzer, 523); // Original frequency: 131
+  // delay(250);
+  // tone(buzzer, 1046); // Original frequency: 262
+  // delay(500);
+  // tone(buzzer, 880); // Original frequency: 220
+  // delay(500);
+  // tone(buzzer, 698); // Original frequency: 175
+  // delay(500);
+  // tone(buzzer, 659); // Original frequency: 165
+  // delay(500);
+  // tone(buzzer, 587); // Original frequency: 147
+  // delay(500);
+  // tone(buzzer, 988); // Original frequency: 233
+  // delay(250);
+  // noTone(buzzer);
+  // delay(125);
+  // tone(buzzer, 988); // Original frequency: 233
+  // delay(250);
+  // tone(buzzer, 880); // Original frequency: 220
+  // delay(500);
+  // tone(buzzer, 698); // Original frequency: 175
+  // delay(500);
+  // tone(buzzer, 784); // Original frequency: 196
+  // delay(500);
+  // tone(buzzer, 698); // Original frequency: 175
+  // delay(1000);
+  // noTone(buzzer);
+  // delay(100);
 }
