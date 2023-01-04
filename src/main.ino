@@ -36,8 +36,8 @@ MFRC522::StatusCode status;
 const char *ssid = ssid_name;
 const char *password = ssid_password;
 
-const char *portal_mail = portal_mail;
-const char *portal_password = portal_password;
+const char *user_mail = portal_mail;
+const char *user_password = portal_password;
 
 const char *mqtt_server = mqtt_server_name;
 const char *mqtt_username = mqtt_server_username;
@@ -85,30 +85,44 @@ void setup()
   pinMode(OBS, INPUT);
 
   WiFi.begin(ssid, password);
- 
-  while (WiFi.status() != WL_CONNECTED) {
+
+  while (WiFi.status() != WL_CONNECTED)
+  {
     delay(500);
     Serial.print(".");
   }
- 
+
   Serial.println("");
-  Serial.println("WiFi connecté");
-  Serial.println("-----------------getReferer-----------------");
+  Serial.println("-------------------- WiFi conneted -------------------");
+  Serial.print("SSID : ");
+  Serial.println(ssid);
+  Serial.print("Password : ");
+  Serial.println(password);
+
   String fullUrl = getReferer();
-  Serial.println("--------------------------------------------");
-  String magic = getMagic(fullUrl);
-  Serial.println("-----------------checkRules-----------------");
-  bool check = checkIsRulesPage(fullUrl);
-  Serial.println("--------------------------------------------");
-  Serial.println("-----------------acceptRules----------------");
-  if (check) {
-    acceptRules(fullUrl, magic);
+  if (fullUrl != "")
+  {
+    String magic = getMagic(fullUrl);
+
+    bool check = checkIsRulesPage(fullUrl);
+    if (check)
+    {
+      acceptRules(fullUrl, magic);
+    }
+    connectFortigatePortal(fullUrl, magic, user_mail, user_password);
   }
-  Serial.println("--------------------------------------------");
-  Serial.println("---------------connectPortal----------------");  
-  connectFortigatePortal(fullUrl, magic, portal_mail, portal_password);
-  Serial.println("--------------------------------------------");
-  connectToGoogle();
+  else
+  {
+    Serial.println("");
+    Serial.println("-------------------- Already login --------------------");
+    Serial.print("Wifi :");
+    Serial.println(ssid);
+    Serial.print("Account :");
+    Serial.println(portal_mail);
+    Serial.println("");
+  }
+
+  connectTo("http://www.google.fr");
 
   // Serial.print("\nConnecting to ");
   // Serial.println(ssid);
@@ -406,82 +420,98 @@ void checkCode(int code)
   }
 }
 
-String getReferer(){
-    HTTPClient http;
-    // Initialisez une requête HTTP GET
-    http.begin("http://www.neverssl.com/");
-    http.addHeader("Connection", "keep-alive");
-    http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-    String location;
-    // Envoyez la requête
-    int httpCode = http.GET();
-    
-    if (httpCode > 0) {
-      String location = http.getLocation();
-      Serial.println("location : "+ location);
-      http.end();
-      return location;
-    } else {
-      Serial.println("Erreur dans l'envoi de la requête location");
-      http.end();
-      return "Error";
-    }
-}
-
-String getMagic(String url){
-  int index = url.indexOf("?");
-  String magic = url.substring(index + 1);
-  Serial.println("magic : "+ magic);
-  return magic;
-}
-
-void acceptRules(String url, String magic){
+String getReferer()
+{
+  Serial.println("-------------------- Get location --------------------");
   HTTPClient http;
-  http.begin(url);
-
-  http.addHeader("Referer", url);
-  http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+  http.begin("http://www.neverssl.com/");
   http.addHeader("Connection", "keep-alive");
-  int httpCode = http.POST("magic=" + magic + "&answer=1");
-  if (httpCode > 0) {
-    String response = http.getString();
+  http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+  String location;
+  int httpCode = http.GET();
+  Serial.print("Code HTTP : ");
+  Serial.println(httpCode);
+  if (httpCode > 0)
+  {
+    String location = http.getLocation();
+    if (location != "")
+    {
+      Serial.println("location : " + location);
+    }
+
+    http.end();
+    return location;
+  }
+  else
+  {
+    Serial.print("Code HTTP : ");
     Serial.println(httpCode);
-    // Serial.println(response);
-  } else {
-    Serial.println(httpCode);
-    Serial.println("Error accept rules: " + http.errorToString(httpCode));
+    Serial.println("Erreur dans l'envoi de la requête location");
+    http.end();
+    return "Error";
   }
 }
 
-bool checkIsRulesPage(String url){
+String getMagic(String url)
+{
+  Serial.println("--------------------- Get magic ----------------------");
+  int index = url.indexOf("?");
+  String magic = url.substring(index + 1);
+  Serial.println("magic : " + magic);
+  return magic;
+}
+
+void acceptRules(String url, String magic)
+{
+  Serial.println("-------------------- Accept rules --------------------");
   HTTPClient http;
   http.begin(url);
+  http.addHeader("Referer", url);
+  http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+  http.addHeader("Connection", "keep-alive");
+  String payload = "magic=" + magic + "&answer=1";
+  int httpCode = http.POST(payload);
+  if (httpCode < 0)
+  {
+    Serial.println("Error accept rules: " + http.errorToString(httpCode));
+  }
+  Serial.print("Code HTTP : ");
+  Serial.println(httpCode);
+  Serial.println("Payload : " + payload);
+}
+
+bool checkIsRulesPage(String url)
+{
+  Serial.println("-------------- Check page is rules page --------------");
+  HTTPClient http;
+  http.begin(url);
+
   int httpCode = http.GET();
-      
- if (httpCode > 0) {
-      String response = http.getString();
-      if (response.indexOf("Conditions de connexion à nos ressources réseau") != -1){
-        Serial.println(httpCode);
-        // Serial.println(response);
-        return true;
-      }
-      else{
-        Serial.println(httpCode);
-        // Serial.println(response);
-        return false;
-      }
-      
-    } else {
-      Serial.println(httpCode);
-      Serial.println("Error check rule: " + http.errorToString(httpCode));
+  Serial.print("Code HTTP : ");
+  Serial.println(httpCode);
+  if (httpCode > 0)
+  {
+    String response = http.getString();
+    if (response.indexOf("Conditions de connexion à nos ressources réseau") != -1)
+    {
+      return true;
+    }
+    else
+    {
       return false;
     }
+  }
+  else
+  {
+    Serial.println("Error check rule: " + http.errorToString(httpCode));
+    return false;
+  }
 }
- 
-void connectFortigatePortal(String fullUrl, String magic, String user, String password){
-  HTTPClient http;
-  //Catch le portail captif
 
+void connectFortigatePortal(String fullUrl, String magic, String username, String password)
+{
+  Serial.println("----------------- Connect to portal ------------------");
+  HTTPClient http;
   http.begin(fullUrl);
   http.GET();
   http.getString();
@@ -489,40 +519,42 @@ void connectFortigatePortal(String fullUrl, String magic, String user, String pa
   http.addHeader("Content-Type", "application/x-www-form-urlencoded");
   http.addHeader("Connection", "keep-alive");
 
+  String payload = "magic=" + magic + "&username=" + username + "&password=" + password;
 
-  String payload = "magic="+magic+"&username="+user+"&password="+password;
-  Serial.println(payload);
   int httpCode = http.POST(payload);
-  if (httpCode > 0) {
-    String response = http.getString();
-    Serial.println(httpCode);
-    Serial.println(response);
-  } else {
-    Serial.println(httpCode);
+  Serial.print("Code HTTP : ");
+  Serial.println(httpCode);
+  Serial.println("Payload : " + payload);
+  if (httpCode < 0)
+  {
     Serial.println("Error connection portal: " + http.errorToString(httpCode));
   }
- 
+
   http.end();
- 
 }
 
-void connectToGoogle() {
+void connectTo(String url)
+{
   HTTPClient http;
-  http.begin("https://www.google.fr");
+  http.begin(url);
+  Serial.println("---------- Connect to " + url + " ------------");
   int httpCode = http.GET();
+  Serial.print("Code HTTP : ");
+  Serial.println(httpCode);
+  if (httpCode > 0)
+  {
+    Serial.println("");
+    String response = http.getString();
+    Serial.print("Response HTML :");
+    Serial.println(response);
+    Serial.println("");
+  }
+  else
+  {
+    Serial.println("Error " + url + " : " + http.errorToString(httpCode));
+  }
 
-  if (httpCode > 0) {
-      String response = http.getString();
-      Serial.println(httpCode);
-      // Serial.println(response);
-      Serial.println("Congratulations you have hacked the CESI, Great job!");
-    } else {
-      Serial.println(httpCode);
-      Serial.println("Error google: " + http.errorToString(httpCode));
-    }
-
-  
-    http.end();
+  http.end();
 }
 
 void birthdaySong()
