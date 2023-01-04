@@ -1,4 +1,5 @@
 #include <WiFi.h>
+#include <HTTPClient.h>
 #include <PubSubClient.h>
 #include <WiFiClientSecure.h>
 #include <SPI.h>
@@ -35,7 +36,9 @@ MFRC522::StatusCode status;
 const char *ssid = ssid_name;
 const char *password = ssid_password;
 
-// 0e1222c02scfl7
+const char *portal_mail = portal_mail;
+const char *portal_password = portal_password;
+
 const char *mqtt_server = mqtt_server_name;
 const char *mqtt_username = mqtt_server_username;
 const char *mqtt_password = mqtt_server_password;
@@ -81,23 +84,49 @@ void setup()
 
   pinMode(OBS, INPUT);
 
-  Serial.print("\nConnecting to ");
-  Serial.println(ssid);
-
-  WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
-
-  while (WiFi.status() != WL_CONNECTED)
-  {
+ 
+  while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
-    setColor(255, 0, 0);
-    delay(150);
-    setColor(0, 0, 0);
   }
-  randomSeed(micros());
-  Serial.println("\nWiFi connected\nIP address: ");
-  Serial.println(WiFi.localIP());
+ 
+  Serial.println("");
+  Serial.println("WiFi connecté");
+  Serial.println("-----------------getReferer-----------------");
+  String fullUrl = getReferer();
+  Serial.println("--------------------------------------------");
+  String magic = getMagic(fullUrl);
+  Serial.println("-----------------checkRules-----------------");
+  bool check = checkIsRulesPage(fullUrl);
+  Serial.println("--------------------------------------------");
+  Serial.println("-----------------acceptRules----------------");
+  if (check) {
+    acceptRules(fullUrl, magic);
+  }
+  Serial.println("--------------------------------------------");
+  Serial.println("---------------connectPortal----------------");  
+  connectFortigatePortal(fullUrl, magic, portal_mail, portal_password);
+  Serial.println("--------------------------------------------");
+  connectToGoogle();
+
+  // Serial.print("\nConnecting to ");
+  // Serial.println(ssid);
+
+  // WiFi.mode(WIFI_STA);
+  // WiFi.begin(ssid, password);
+
+  // while (WiFi.status() != WL_CONNECTED)
+  // {
+  //   delay(500);
+  //   Serial.print(".");
+  //   setColor(255, 0, 0);
+  //   delay(150);
+  //   setColor(0, 0, 0);
+  // }
+  // randomSeed(micros());
+  // Serial.println("\nWiFi connected\nIP address: ");
+  // Serial.println(WiFi.localIP());
 
   SPI.begin();
   rfid.PCD_Init();
@@ -375,6 +404,125 @@ void checkCode(int code)
     delay(10);
     return;
   }
+}
+
+String getReferer(){
+    HTTPClient http;
+    // Initialisez une requête HTTP GET
+    http.begin("http://www.neverssl.com/");
+    http.addHeader("Connection", "keep-alive");
+    http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+    String location;
+    // Envoyez la requête
+    int httpCode = http.GET();
+    
+    if (httpCode > 0) {
+      String location = http.getLocation();
+      Serial.println("location : "+ location);
+      http.end();
+      return location;
+    } else {
+      Serial.println("Erreur dans l'envoi de la requête location");
+      http.end();
+      return "Error";
+    }
+}
+
+String getMagic(String url){
+  int index = url.indexOf("?");
+  String magic = url.substring(index + 1);
+  Serial.println("magic : "+ magic);
+  return magic;
+}
+
+void acceptRules(String url, String magic){
+  HTTPClient http;
+  http.begin(url);
+
+  http.addHeader("Referer", url);
+  http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+  http.addHeader("Connection", "keep-alive");
+  int httpCode = http.POST("magic=" + magic + "&answer=1");
+  if (httpCode > 0) {
+    String response = http.getString();
+    Serial.println(httpCode);
+    // Serial.println(response);
+  } else {
+    Serial.println(httpCode);
+    Serial.println("Error accept rules: " + http.errorToString(httpCode));
+  }
+}
+
+bool checkIsRulesPage(String url){
+  HTTPClient http;
+  http.begin(url);
+  int httpCode = http.GET();
+      
+ if (httpCode > 0) {
+      String response = http.getString();
+      if (response.indexOf("Conditions de connexion à nos ressources réseau") != -1){
+        Serial.println(httpCode);
+        // Serial.println(response);
+        return true;
+      }
+      else{
+        Serial.println(httpCode);
+        // Serial.println(response);
+        return false;
+      }
+      
+    } else {
+      Serial.println(httpCode);
+      Serial.println("Error check rule: " + http.errorToString(httpCode));
+      return false;
+    }
+}
+ 
+void connectFortigatePortal(String fullUrl, String magic, String user, String password){
+  HTTPClient http;
+  //Catch le portail captif
+
+  http.begin(fullUrl);
+  http.GET();
+  http.getString();
+  http.addHeader("Referer", fullUrl);
+  http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+  http.addHeader("Connection", "keep-alive");
+
+
+  String payload = "magic="+magic+"&username="+user+"&password="+password;
+  Serial.println(payload);
+  int httpCode = http.POST(payload);
+  if (httpCode > 0) {
+    String response = http.getString();
+    Serial.println(httpCode);
+    Serial.println(response);
+  } else {
+    Serial.println(httpCode);
+    Serial.println("Error connection portal: " + http.errorToString(httpCode));
+  }
+ 
+  http.end();
+ 
+}
+
+void connectToGoogle() {
+  HTTPClient http;
+  http.begin("https://www.google.fr");
+  int httpCode = http.GET();
+
+  if (httpCode > 0) {
+      String response = http.getString();
+      Serial.println(httpCode);
+      // Serial.println(response);
+      Serial.println("Congratulations you have hacked the CESI, Great job!");
+    } else {
+      Serial.println(httpCode);
+      Serial.println("Error google: " + http.errorToString(httpCode));
+    }
+
+  
+    http.end();
 }
 
 void birthdaySong()
