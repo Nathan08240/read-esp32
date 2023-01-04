@@ -100,7 +100,7 @@ void setup()
   Serial.println(password);
 
   String fullUrl = getReferer();
-  if (fullUrl != "")
+  if (fullUrl != "connected")
   {
     String magic = getMagic(fullUrl);
 
@@ -122,26 +122,6 @@ void setup()
     Serial.println("");
   }
 
-  connectTo("http://www.google.fr");
-
-  // Serial.print("\nConnecting to ");
-  // Serial.println(ssid);
-
-  // WiFi.mode(WIFI_STA);
-  // WiFi.begin(ssid, password);
-
-  // while (WiFi.status() != WL_CONNECTED)
-  // {
-  //   delay(500);
-  //   Serial.print(".");
-  //   setColor(255, 0, 0);
-  //   delay(150);
-  //   setColor(0, 0, 0);
-  // }
-  // randomSeed(micros());
-  // Serial.println("\nWiFi connected\nIP address: ");
-  // Serial.println(WiFi.localIP());
-
   SPI.begin();
   rfid.PCD_Init();
 
@@ -150,6 +130,8 @@ void setup()
   pinMode(buzzer, OUTPUT);
 
   espClient.setInsecure(); // set security or not to wifi connect
+  Serial.println("");
+  Serial.println("------------------- MQTT connection -------------------");
   client.setServer(mqtt_server, mqtt_port);
   client.setCallback(callback);
 
@@ -422,15 +404,13 @@ void checkCode(int code)
 
 String getReferer()
 {
-  Serial.println("-------------------- Get location --------------------");
   HTTPClient http;
   http.begin("http://www.neverssl.com/");
   http.addHeader("Connection", "keep-alive");
   http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
   String location;
   int httpCode = http.GET();
-  Serial.print("Code HTTP : ");
-  Serial.println(httpCode);
+
   if (httpCode > 0)
   {
     String location = http.getLocation();
@@ -440,10 +420,20 @@ String getReferer()
     }
 
     http.end();
+
+    if (httpCode == 200)
+    {
+      return "connected";
+    }
+    Serial.println("-------------------- Get location --------------------");
+    Serial.print("Code HTTP : ");
+    Serial.println(httpCode);
+
     return location;
   }
   else
   {
+    Serial.println("-------------------- Get location --------------------");
     Serial.print("Code HTTP : ");
     Serial.println(httpCode);
     Serial.println("Erreur dans l'envoi de la requête location");
@@ -559,66 +549,65 @@ void connectTo(String url)
 
 void birthdaySong()
 {
-  Serial.println("Joyeux anniversaire ! ");
-  // delay(100);
-  // tone(buzzer, 523); // Original frequency: 131
-  // delay(250);
-  // noTone(buzzer);
-  // delay(125);
-  // tone(buzzer, 523); // Original frequency: 131
-  // delay(250);
-  // tone(buzzer, 587); // Original frequency: 147
-  // delay(500);
-  // tone(buzzer, 523); // Original frequency: 131
-  // delay(500);
-  // tone(buzzer, 698); // Original frequency: 175
-  // delay(500);
-  // tone(buzzer, 659); // Original frequency: 165
-  // delay(1000);
-  // tone(buzzer, 523); // Original frequency: 131
-  // delay(250);
-  // noTone(buzzer);
-  // delay(125);
-  // tone(buzzer, 523); // Original frequency: 131
-  // delay(250);
-  // tone(buzzer, 587); // Original frequency: 147
-  // delay(500);
-  // tone(buzzer, 523); // Original frequency: 131
-  // delay(500);
-  // tone(buzzer, 784); // Original frequency: 196
-  // delay(500);
-  // tone(buzzer, 698); // Original frequency: 175
-  // delay(1000);
-  // tone(buzzer, 523); // Original frequency: 131
-  // delay(250);
-  // noTone(buzzer);
-  // delay(125);
-  // tone(buzzer, 523); // Original frequency: 131
-  // delay(250);
-  // tone(buzzer, 1046); // Original frequency: 262
-  // delay(500);
-  // tone(buzzer, 880); // Original frequency: 220
-  // delay(500);
-  // tone(buzzer, 698); // Original frequency: 175
-  // delay(500);
-  // tone(buzzer, 659); // Original frequency: 165
-  // delay(500);
-  // tone(buzzer, 587); // Original frequency: 147
-  // delay(500);
-  // tone(buzzer, 988); // Original frequency: 233
-  // delay(250);
-  // noTone(buzzer);
-  // delay(125);
-  // tone(buzzer, 988); // Original frequency: 233
-  // delay(250);
-  // tone(buzzer, 880); // Original frequency: 220
-  // delay(500);
-  // tone(buzzer, 698); // Original frequency: 175
-  // delay(500);
-  // tone(buzzer, 784); // Original frequency: 196
-  // delay(500);
-  // tone(buzzer, 698); // Original frequency: 175
-  // delay(1000);
-  // noTone(buzzer);
-  // delay(100);
+  delay(100);
+  tone(buzzer, 523); // Original frequency: 131
+  delay(250);
+  noTone(buzzer);
+  delay(125);
+  tone(buzzer, 523); // Original frequency: 131
+  delay(250);
+  tone(buzzer, 587); // Original frequency: 147
+  delay(500);
+  tone(buzzer, 523); // Original frequency: 131
+  delay(500);
+  tone(buzzer, 698); // Original frequency: 175
+  delay(500);
+  tone(buzzer, 659); // Original frequency: 165
+  delay(1000);
+  tone(buzzer, 523); // Original frequency: 131
+  delay(250);
+  noTone(buzzer);
+  delay(125);
+  tone(buzzer, 523); // Original frequency: 131
+  delay(250);
+  tone(buzzer, 587); // Original frequency: 147
+  delay(500);
+  tone(buzzer, 523); // Original frequency: 131
+  delay(500);
+  tone(buzzer, 784); // Original frequency: 196
+  delay(500);
+  tone(buzzer, 698); // Original frequency: 175
+  delay(1000);
+  tone(buzzer, 523); // Original frequency: 131
+  delay(250);
+  noTone(buzzer);
+  delay(125);
+  tone(buzzer, 523); // Original frequency: 131
+  delay(250);
+  tone(buzzer, 1046); // Original frequency: 262
+  delay(500);
+  tone(buzzer, 880); // Original frequency: 220
+  delay(500);
+  tone(buzzer, 698); // Original frequency: 175
+  delay(500);
+  tone(buzzer, 659); // Original frequency: 165
+  delay(500);
+  tone(buzzer, 587); // Original frequency: 147
+  delay(500);
+  tone(buzzer, 988); // Original frequency: 233
+  delay(250);
+  noTone(buzzer);
+  delay(125);
+  tone(buzzer, 988); // Original frequency: 233
+  delay(250);
+  tone(buzzer, 880); // Original frequency: 220
+  delay(500);
+  tone(buzzer, 698); // Original frequency: 175
+  delay(500);
+  tone(buzzer, 784); // Original frequency: 196
+  delay(500);
+  tone(buzzer, 698); // Original frequency: 175
+  delay(1000);
+  noTone(buzzer);
+  delay(100);
 }
