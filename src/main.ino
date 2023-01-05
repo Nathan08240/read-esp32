@@ -538,7 +538,7 @@ void connectTo(String url)
   }
   else if (httpCode == 303)
   {
-    Serial.println("You are not connecting");
+    Serial.print("You are not connecting");
   }
   else
   {
@@ -611,4 +611,91 @@ void birthdaySong()
   delay(1000);
   noTone(buzzer);
   delay(100);
+}
+
+void fredSong()
+{
+  const int c = 261;
+  const int d = 294;
+  const int e = 329;
+  const int f = 349;
+  const int g = 391;
+  const int gS = 415;
+  const int a = 440;
+  const int aS = 455;
+  const int b = 466;
+  const int cH = 523;
+  const int cSH = 554;
+  const int dH = 587;
+  const int dSH = 622;
+  const int eH = 659;
+  const int fH = 698;
+  const int fSH = 740;
+  const int gH = 784;
+  const int gSH = 830;
+  const int aH = 880;
+
+  tone(buzzer, a, 500);
+  delay(250);
+  tone(buzzer, a, 500);
+  delay(250);
+  tone(buzzer, a, 500);
+  delay(250);
+  noTone(buzzer);
+  delay(250);
+  tone(buzzer, f, 350);
+  delay(250);
+  tone(buzzer, cH, 150);
+  delay(250);
+  tone(buzzer, a, 500);
+  delay(250);
+  tone(buzzer, f, 350);
+  delay(250);
+  tone(buzzer, cH, 150);
+  delay(250);
+  tone(buzzer, a, 650);
+  delay(500);
+  noTone(buzzer);
+  delay(500);
+  tone(buzzer, eH, 500);
+  delay(250);
+  tone(buzzer, eH, 500);
+  delay(250);
+  tone(buzzer, eH, 500);
+  delay(250);
+  noTone(buzzer);
+  delay(250);
+  tone(buzzer, fH, 350);
+  delay(250);
+  tone(buzzer, cH, 150);
+  delay(250);
+  tone(buzzer, gS, 500);
+  delay(250);
+  tone(buzzer, f, 350);
+  delay(250);
+  tone(buzzer, cH, 150);
+  delay(250);
+  tone(buzzer, a, 650);
+  delay(500);
+  noTone(buzzer);
+  delay(500);
+  tone(buzzer, aH, 500);
+  delay(250);
+  tone(buzzer, a, 300);
+  delay(250);
+  tone(buzzer, a, 150);
+  delay(250);
+  tone(buzzer, aH, 500);
+  delay(250);
+  tone(buzzer, gSH, 325);
+  delay(250);
+  tone(buzzer, gH, 175);
+  delay(250);
+  tone(buzzer, fSH, 125);
+  delay(125);
+  tone(buzzer, fH, 125);
+  delay(250);
+  tone(buzzer, aS, 250);
+  delay(250);
+  noTone(buzzer);
 }
