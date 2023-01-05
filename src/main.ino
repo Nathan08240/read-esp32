@@ -519,6 +519,7 @@ void connectFortigatePortal(String fullUrl, String magic, String username, Strin
   {
     Serial.println("Error connection portal: " + http.errorToString(httpCode));
   }
+  connectTo("http://www.neverssl.com/");
 
   http.end();
 }
@@ -531,13 +532,13 @@ void connectTo(String url)
   int httpCode = http.GET();
   Serial.print("Code HTTP : ");
   Serial.println(httpCode);
-  if (httpCode > 0)
+  if (httpCode == 200)
   {
-    Serial.println("");
-    String response = http.getString();
-    Serial.print("Response HTML :");
-    Serial.println(response);
-    Serial.println("");
+    Serial.println("You are connecting");
+  }
+  else if (httpCode == 303)
+  {
+    Serial.println("You are not connecting");
   }
   else
   {
